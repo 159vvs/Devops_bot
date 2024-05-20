@@ -292,7 +292,8 @@ def get_services(update: Update, context):
 
 
 def get_repl_logs(update: Update, context):
-    handle_ssh_command(update, context, "/get_repl_logs", "cat /var/log/postgresql/postgres.log | grep replication")
+    password = os.getenv("RM_PASSWORD")
+    handle_ssh_command(update, context, "/get_repl_logs", f"echo {password} | sudo -S cat /var/log/postgresql/postgres.log | grep replication")
 
 def get_emails(update: Update, context):
     handle_psql_command(update, context, "/get_emails", "SELECT * FROM emails;")
