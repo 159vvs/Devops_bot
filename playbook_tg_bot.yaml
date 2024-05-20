@@ -28,7 +28,7 @@
 
   - name: install requirements
     pip:
-      requirements: "{{ hostvars[inventory_hostname]['WORKDIR'] }}/bot/requirements.txt"
+      requirements: "{{ hostvars[inventory_hostname]['WORKDIR'] }}/requirements.txt"
 
   - name: init.sql to host1
     copy:
@@ -135,7 +135,7 @@
   become: yes
   tasks:
   - name: start bot
-    command: python3 "{{ hostvars[inventory_hostname]['WORKDIR'] }}/bot/main.py"
+    command: python3 "{{ hostvars[inventory_hostname]['WORKDIR'] }}/bot.py"
     environment:
       HOST: "{{ hostvars[inventory_hostname]['RM_HOST'] }}"
       POSTGRES_HOST: "{{ hostvars[inventory_hostname]['RM_HOST'] }}"
