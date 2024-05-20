@@ -292,8 +292,7 @@ def get_services(update: Update, context):
 
 
 def get_repl_logs(update: Update, context):
-    password = os.getenv("RM_PASSWORD")
-    handle_ssh_command(update, context, "/get_repl_logs", f"echo {password} | sudo -S docker exec bot sh -c \"cat /var/log/postgresql/postgres.log | grep replication\"")
+    handle_ssh_command(update, context, "/get_repl_logs", "cat /var/log/postgresql/postgres.log | grep replication")
 
 def get_emails(update: Update, context):
     handle_psql_command(update, context, "/get_emails", "SELECT * FROM emails;")
