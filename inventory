@@ -1,6 +1,6 @@
 all:
   vars:
-    TOKEN:
+    TOKEN: 6972394995:AAH3HSOqSwDpN0r_9bwAYMUFl_r8Ph2CWOM
     GIT: https://github.com/159vvs/Devops_bot.git
     WORKDIR: /root/ansible
     POSTGRES_VERSION: 14
@@ -8,7 +8,7 @@ all:
     DB_REPL_USER: repl_user
     DB_REPL_PASSWORD: kali
     DB_REPL_PORT: 5433
-    DB_REPL_HOST: 192.168.141.142
+    DB_REPL_HOST: 192.168.36.142
 
     RM_HOST: 192.168.36.141
     RM_PORT: 22
@@ -26,8 +26,9 @@ all:
       ansible_host: 192.168.36.141
       ansible_user: ansibledb
       ansible_ssh_pass: kali
-
+      ansible_become_pass: kali
     host2:
-      ansible_host: 192.168.141.142
+      ansible_host: 192.168.36.142
       ansible_user: ansiblehost
       ansible_ssh_pass: kali
+      ansible_become_pass: kali

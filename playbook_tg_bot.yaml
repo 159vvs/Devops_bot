@@ -30,6 +30,39 @@
     pip:
       requirements: "{{ hostvars[inventory_hostname]['WORKDIR'] }}/requirements.txt"
 
+  - name: Find all directories inside /etc/postgresql/
+    find:
+      paths: "/etc/postgresql/"
+      file_type: directory
+    register: postgres_dirs
+
+  - name: Add full path to PostgreSQL directories
+    set_fact:
+      postgres_dirs_with_full_path: "{{ postgres_dirs.files | map(attribute='path') | join }}"
+
+  - name: Change postgresql.conf
+    blockinfile:
+      path: "{{ postgres_dirs_with_full_path }}/main/postgresql.conf"
+      block: |
+        listen_addresses = '*'
+        password_encryption ='scram-sha-256'
+        port = {{ hostvars[inventory_hostname]['DB_PORT'] }}
+        max_wal_senders=10
+        wal_level=replica
+        hot_standby=on
+        max_replication_slots=10
+        hot_standby_feedback=on
+        log_replication_commands=on
+        log_directory='/var/log/postgresql'
+        log_filename='postgres.log'
+        logging_collector=on
+
+  - name: applying changes
+    service:
+      name: postgresql
+      state: restarted
+
+
   - name: init.sql to host1
     copy:
       src: init.sql
@@ -73,26 +106,10 @@
     become: true
     become_user: postgres
 
-  - name: change postgresql.conf
-    blockinfile:
-      path: "/etc/postgresql/{{ hostvars[inventory_hostname]['POSTGRES_VERSION'] }}/main/postgresql.conf"
-      block: |
-        listen_addresses = '*'
-        port = {{ hostvars[inventory_hostname]['DB_PORT'] }}
-        max_wal_senders=10
-        wal_level=replica
-        hot_standby=on
-        max_replication_slots=10
-        hot_standby_feedback=on
-        log_replication_commands=on
-        log_directory=/var/log/postgresql/
-        log_filename=postgres.log
-        logging_collector=on
-
   - name: pg_hba.conf to host1
     copy:
       src: pg_hba.conf
-      dest: "/etc/postgresql/{{ hostvars[inventory_hostname]['POSTGRES_VERSION'] }}/main/pg_hba.conf"
+      dest: "{{ postgres_dirs_with_full_path }}/main/pg_hba.conf"
 
   - name: applying changes
     service:
@@ -104,20 +121,40 @@
   become: true
   tasks:
 
+  - name: Find all directories inside /etc/postgresql/
+    find:
+      paths: "/etc/postgresql/"
+      file_type: directory
+    register: postgres_dirs
+
+  - name: Add full path to PostgreSQL directories
+    set_fact:
+      postgres_dirs_with_full_path: "{{ postgres_dirs.files | map(attribute='path') | join }}"
+
   - name: change postgresql.conf
     become: true
     become_user: postgres
     blockinfile:
-      path: "/etc/postgresql/{{ hostvars[inventory_hostname]['POSTGRES_VERSION'] }}/main/postgresql.conf"
+      path: "{{ postgres_dirs_with_full_path }}/main/postgresql.conf"
       block: |
         listen_addresses = '*'
         port = {{ hostvars[inventory_hostname]['DB_REPL_PORT'] }}
 
+  - name: Find all directories inside /var/lib/postgresql/
+    find:
+      paths: "/var/lib/postgresql"
+      file_type: directory
+    register: postgres_dirs
+
+  - name: Add full path to PostgreSQL directories
+    set_fact:
+      postgres_dirs_with_full_path: "{{ postgres_dirs.files | map(attribute='path') | join }}"
+
   - name: remove database data
-    command: rm -rf /var/lib/postgresql/{{ hostvars[inventory_hostname]['POSTGRES_VERSION'] }}/
+    command: "rm -rf {{ postgres_dirs_with_full_path }}/main"
 
   - name: do backup from host1
-    command: pg_basebackup -h {{ hostvars[inventory_hostname]['DB_HOST'] }} -D /var/lib/postgresql/{{ hostvars[inventory_hostname]['POSTGRES_VERSION'] }}/main/ -p {{ hostvars[inventory_hostname]['DB_PORT'] }} -U {{ hostvars[inventory_hostname]['DB_REPL_USER'] }}
+    command: pg_basebackup -h {{ hostvars[inventory_hostname]['DB_HOST'] }} -D "{{ postgres_dirs_with_full_path }}/main/" -R --slot=replication_slot -p {{ hostvars[inventory_hostname]['DB_PORT'] }}
     environment:
       PGUSER: "{{ hostvars[inventory_hostname]['DB_REPL_USER'] }}"
       PGPASSWORD: "{{ hostvars[inventory_hostname]['DB_REPL_PASSWORD'] }}"
@@ -137,18 +174,17 @@
   - name: start bot
     command: python3 "{{ hostvars[inventory_hostname]['WORKDIR'] }}/bot.py"
     environment:
-      HOST: "{{ hostvars[inventory_hostname]['RM_HOST'] }}"
-      POSTGRES_HOST: "{{ hostvars[inventory_hostname]['RM_HOST'] }}"
-      REPL_HOST: "{{ hostvars[inventory_hostname]['DB_REPL_HOST'] }}"
-      PORT: "{{ hostvars[inventory_hostname]['RM_PORT'] }}"
-      USER: "{{ hostvars[inventory_hostname]['RM_USER'] }}"
-      POSTGRES_DB: "{{ hostvars[inventory_hostname]['DB_DATABASE'] }}"
-      POSTGRES_USER: "{{ hostvars[inventory_hostname]['DB_USER'] }}"
-      POSTGRES_PASSWORD: "{{ hostvars[inventory_hostname]['DB_PASSWORD'] }}"
-      POSTGRES_PORT: "{{ hostvars[inventory_hostname]['DB_PORT'] }}"
-      POSTGRES_REPL_USER: "{{ hostvars[inventory_hostname]['DB_REPL_USER'] }}"
-      POSTGRES_REPL_PASSWORD: "{{ hostvars[inventory_hostname]['DB_REPL_PASSWORD'] }}"
-      POSTGRES_VERSION: "{{ hostvars[inventory_hostname]['POSTGRES_VERSION'] }}"
-      PASSWORD: "{{ hostvars[inventory_hostname]['RM_PASSWORD'] }}"
-      ROOT_PASSWORD: "{{ hostvars[inventory_hostname]['RM_PASSWORD'] }}"
+      RM_HOST: "{{ hostvars[inventory_hostname]['RM_HOST'] }}"
+      RM_PORT: "{{ hostvars[inventory_hostname]['RM_PORT'] }}"
+      RM_USER: "{{ hostvars[inventory_hostname]['RM_USER'] }}"
+      RM_PASSWORD: "{{ hostvars[inventory_hostname]['RM_PASSWORD'] }}"
+      DB_HOST: "{{ hostvars[inventory_hostname]['DB_HOST'] }}"
+      DB_DATABASE: "{{ hostvars[inventory_hostname]['DB_DATABASE'] }}"
+      DB_USER: "{{ hostvars[inventory_hostname]['DB_USER'] }}"
+      DB_PASSWORD: "{{ hostvars[inventory_hostname]['DB_PASSWORD'] }}"
+      DB_PORT: "{{ hostvars[inventory_hostname]['DB_PORT'] }}"
+      DB_REPL_HOST: "{{ hostvars[inventory_hostname]['DB_REPL_HOST'] }}"
+      DB_REPL_USER: "{{ hostvars[inventory_hostname]['DB_REPL_USER'] }}"
+      DB_REPL_PASSWORD: "{{ hostvars[inventory_hostname]['DB_REPL_PASSWORD'] }}"
+      DB_REPL_PORT: "{{ hostvars[inventory_hostname]['DB_REPL_PORT'] }}"
       TOKEN: "{{ hostvars[inventory_hostname]['TOKEN'] }}"
