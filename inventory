@@ -1,6 +1,6 @@
 all:
   vars:
-    TOKEN: 6972394995:AAH3HSOqSwDpN0r_9bwAYMUFl_r8Ph2CWOM
+    TOKEN: 7005224499:AAE0Ui-y1LJZTMXbJQgdcLRu35SkbX6c3ss
     GIT: https://github.com/159vvs/Devops_bot.git
     WORKDIR: /root/ansible
     POSTGRES_VERSION: 14
