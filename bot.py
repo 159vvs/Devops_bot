@@ -284,7 +284,7 @@ def get_apt_list(update: Update, context):
         package_name = context.args[0]
         handle_ssh_command(update, context, f"/get_apt_list {package_name}", f"apt show {package_name}")
     else:
-        handle_ssh_command(update, context, "/get_apt_list", "apt list | head -10")
+        handle_ssh_command(update, context, "/get_apt_list", "apt list | head --installed")
 
 
 def get_services(update: Update, context):
